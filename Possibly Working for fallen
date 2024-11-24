@@ -1,0 +1,75 @@
+--[[
+Found on Efial Discord
+
+
+]]
+-- variables
+local camera        = workspace.CurrentCamera;
+local players       = game:GetService("Players");
+local runservice    = game:GetService("RunService");
+local userinput     = game:GetService("UserInputService");
+local lplayer       = players.LocalPlayer;
+
+-- etc variables
+local key           = "E";
+local loggedplr     = nil;
+local keydown       = false;
+local fovsize       = 100
+
+-- getclosestplayer()
+local fovcircle     = Drawing.new("Circle");
+fovcircle.Radius    = fovsize;
+fovcircle.Color     = Color3.fromRGB(255, 255, 255);
+fovcircle.Position  = camera.ViewportSize / 2;
+--
+local function getclosestplayer()
+    local mag, plr = math.huge, nil;
+    for _,v in pairs(players:GetPlayers()) do
+        if v.Character and v.Character:FindFirstChild("Head") and v ~= lplayer then
+            local pos, vis = camera:WorldToViewportPoint(v.Character.HumanoidRootPart.Position);
+            local magnitude = (Vector2.new(pos.X, pos.Y) - camera.ViewportSize / 2).Magnitude;
+            if magnitude <= fovcircle.Radius and magnitude < mag and vis then
+               mag = magnitude;
+               plr = v;
+            end
+        end
+    end
+    return plr
+end
+
+-- Sticky Aim
+userinput.InputBegan:Connect(function(input, gameProcessedEvent)
+    if gameProcessedEvent then return end;
+    --
+    if input.KeyCode.Name == key and not keydown then
+        repeat task.wait() until getclosestplayer();
+        if not loggedplr and getclosestplayer() then
+            keydown = true;
+            loggedplr = getclosestplayer().Character:FindFirstChild("HumanoidRootPart") and getclosestplayer();
+        end
+    end
+end)
+
+userinput.InputBegan:Connect(function(input, gameProcessedEvent)
+    if gameProcessedEvent then return end;
+    --
+    if input.KeyCode.Name == key and keydown then
+        if loggedplr then
+            keydown = false;
+            loggedplr = nil;
+        end
+    end
+end)
+
+-- loop for aimbot
+runservice.RenderStepped:Connect(function()
+    if loggedplr and loggedplr.Character:FindFirstChild("HumanoidRootPart") then
+        local ButtonDown = userinput:IsKeyDown(Enum.KeyCode.E);
+        if ButtonDown then
+            -- camera.CFrame = CFrame.new(camera.CFrame.Position, loggedplr.Character.Head.Position)
+
+            -- Smoothing
+            camera.CFrame = camera.CFrame:lerp(CFrame.new(camera.CFrame.Position, loggedplr.Character.Head.Position), 0.1)
+        end
+    end
+end)
